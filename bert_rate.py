@@ -1,8 +1,6 @@
 import pandas as pd
-import os
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
-from transformers import PreTrainedTokenizerFast
 from transformers import DataCollatorWithPadding
 from transformers import TrainingArguments, Trainer
 
@@ -10,8 +8,9 @@ from transformers import TrainingArguments, Trainer
 class ContentScoreRegressor:
     def __init__(self,
                  model_dir: str,
-                 question_col: str = "Question",
-                 answer_col: str = "Text"
+                 question_col: str,
+                 answer_col: str,
+                 config_file: str
                 ):
         # Create dataframe from input dictionary
 
@@ -26,8 +25,8 @@ class ContentScoreRegressor:
         self.model_dir = model_dir
 
         # Initialize tokenizer and model configuration
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=f"{model_dir}/tokenizer.json")
-        self.model_config = AutoConfig.from_pretrained(f"{model_dir}/config.json")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
+        self.model_config = AutoConfig.from_pretrained(f"{model_dir}/{config_file}")
 
         # Initialize data collator for padding
         self.data_collator = DataCollatorWithPadding(
@@ -80,10 +79,10 @@ class ContentScoreRegressor:
         test_tokenized_dataset = test_dataset.map(self.tokenize_function_infer, batched=False)
 
         # Perform predictions
-        preds = self.infer.predict(test_tokenized_dataset)[0]
+        pred = round(self.infer.predict(test_tokenized_dataset)[0][0][0])
 
-        return preds
+        return pred
 
 
 def dict_to_df(send_data: dict):
-    return pd.DataFrame.from_dict(send_data)
+    return pd.DataFrame(send_data, index=[0])
