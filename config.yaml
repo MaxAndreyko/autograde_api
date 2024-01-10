@@ -1,6 +1,10 @@
-data:
+bert_model:
   question_col: "Question"
   answer_col: "Text"
+  model_dir: "bert_base_uncase_10_epochs"
+  config_file: "config.json"
 
-path:
-  model_dir: "/bert_base_uncase_10_epochs"
+s3_data:
+  bucket_name: "autograde-engwriting"
+  bert_model_path: "bert_base_uncase_10_epochs"
+  
