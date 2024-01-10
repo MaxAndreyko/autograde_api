@@ -1,0 +1,89 @@
+import pandas as pd
+import os
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
+from transformers import PreTrainedTokenizerFast
+from transformers import DataCollatorWithPadding
+from transformers import TrainingArguments, Trainer
+
+
+class ContentScoreRegressor:
+    def __init__(self,
+                 model_dir: str,
+                 question_col: str = "Question",
+                 answer_col: str = "Text"
+                ):
+        # Create dataframe from input dictionary
+
+        # Define input columns and target column
+        self.question_col = question_col
+        self.answer_col = answer_col
+        self.inputs = [question_col, answer_col]
+        self.input_col = "input"
+        self.text_cols = [self.input_col]
+
+        # Initialize model-related attributes
+        self.model_dir = model_dir
+
+        # Initialize tokenizer and model configuration
+        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=f"{model_dir}/tokenizer.json")
+        self.model_config = AutoConfig.from_pretrained(f"{model_dir}/config.json")
+
+        # Initialize data collator for padding
+        self.data_collator = DataCollatorWithPadding(
+            tokenizer=self.tokenizer
+        )
+
+        # Load the trained content score prediction model
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_dir)
+        self.model.eval()
+
+        # Define model prediction arguments
+        test_args = TrainingArguments(
+            output_dir=self.model_dir,
+            do_train=False,
+            do_predict=True,
+            per_device_eval_batch_size=4,
+            dataloader_drop_last=False,
+        )
+
+        # Initialize a trainer for inference
+        self.infer = Trainer(
+                      model=self.model ,
+                      tokenizer=self.tokenizer,
+                      data_collator=self.data_collator,
+                      args=test_args)
+
+    def tokenize_function_infer(self, examples: pd.DataFrame):
+        tokenized = self.tokenizer(examples[self.input_col])
+        return tokenized
+
+    def predict(self,
+                test_df: pd.DataFrame,
+               ):
+        """Predict content score for test data"""
+
+        sep = self.tokenizer.sep_token
+
+        # Create input text for test data
+        in_text = (
+                    test_df[self.question_col] + sep
+                    + test_df[self.answer_col]
+                  )
+        test_df[self.input_col] = in_text
+
+        # Select the relevant columns
+        test_ = test_df[[self.input_col]]
+
+        # Create a dataset from the test data
+        test_dataset = Dataset.from_pandas(test_, preserve_index=False)
+        test_tokenized_dataset = test_dataset.map(self.tokenize_function_infer, batched=False)
+
+        # Perform predictions
+        preds = self.infer.predict(test_tokenized_dataset)[0]
+
+        return preds
+
+
+def dict_to_df(send_data: dict):
+    return pd.DataFrame.from_dict(send_data)

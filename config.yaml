@@ -1,0 +1,6 @@
+data:
+  question_col: "Question"
+  answer_col: "Text"
+
+path:
+  model_dir: "/bert_base_uncase_10_epochs"
