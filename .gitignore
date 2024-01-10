@@ -144,3 +144,6 @@ dmypy.json
 # Any credentials
 *credentials*
 *key*
+
+# Model weights folder
+*bert*
