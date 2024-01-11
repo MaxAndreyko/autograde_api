@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from utils import dict_to_df, form_send_request_body
-from bert_rate import LetterScoreRegressor
+from scorers.bert_rate import K1ScoreRegressor
 
 
 with open("config.yaml") as cfg:
@@ -13,7 +13,7 @@ with open("config.yaml") as cfg:
 
 # Create instances of global classes
 app = FastAPI() # FastAPI
-k1_model = LetterScoreRegressor(**cfg_dict["bert_model"]) # K2-criterion (BERT) model
+k1_model = K1ScoreRegressor(**cfg_dict["bert_model"]) # K2-criterion (BERT) model
 
 class PredictionRequest(BaseModel):
     """Input data model for prediction"""
