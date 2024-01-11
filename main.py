@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from utils import dict_to_df, form_send_request_body
-from scorers.bert_rate import K1ScoreRegressor
+from scorers.k1_scorer import K1ScoreRegressor
 from load import s3_load_folder
 
 # Read config yaml file
