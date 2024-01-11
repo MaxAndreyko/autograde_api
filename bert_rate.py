@@ -5,14 +5,26 @@ from transformers import DataCollatorWithPadding
 from transformers import TrainingArguments, Trainer
 
 
-class ContentScoreRegressor:
+class LetterScoreRegressor:
     def __init__(self,
                  model_dir: str,
                  question_col: str,
                  answer_col: str,
                  config_file: str
                 ):
-        # Create dataframe from input dictionary
+        """Initializes K2-criterion regression model from saved weights
+
+        Parameters
+        ----------
+        model_dir : str
+            Directory where required model files located
+        question_col : str
+            Name (key) of question column
+        answer_col : str
+            Name (key) of answer column
+        config_file : str
+            Name of model configuration file inside `model_dir` folder
+        """
 
         # Define input columns and target column
         self.question_col = question_col
@@ -54,14 +66,31 @@ class ContentScoreRegressor:
                       args=test_args)
 
     def tokenize_function_infer(self, examples: pd.DataFrame):
+        """Tokenizes input text
+
+        Parameters
+        ----------
+        examples : pd.DataFrame
+            Input dataframe with text input column
+        """
         tokenized = self.tokenizer(examples[self.input_col])
         return tokenized
 
     def predict(self,
                 test_df: pd.DataFrame,
-               ):
-        """Predict content score for test data"""
+               ) -> int:
+        """Predicts letter score for input data
 
+        Parameters
+        ----------
+        test_df : pd.DataFrame
+            Input dataframe for prediction
+
+        Returns
+        -------
+        int
+            K2-criterion score prediction
+        """
         sep = self.tokenizer.sep_token
 
         # Create input text for test data
@@ -82,7 +111,4 @@ class ContentScoreRegressor:
         pred = round(self.infer.predict(test_tokenized_dataset)[0][0][0])
 
         return pred
-
-
-def dict_to_df(send_data: dict):
-    return pd.DataFrame(send_data, index=[0])
+    
