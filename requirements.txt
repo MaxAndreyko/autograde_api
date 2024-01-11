@@ -1,7 +1,7 @@
 pandas==2.1.4
 datasets==2.16.1
 transformers==4.36.2
-transformers[pytorch]
+transformers[torch]
 fastapi==0.108.0
 pydantic==2.5.3
 boto3==1.33.1
