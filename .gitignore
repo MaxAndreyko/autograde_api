@@ -137,6 +137,7 @@ dmypy.json
 # CSV files
 *.tsv
 *.csv
+*.xlsx
 
 # Models
 *.pkl
@@ -144,3 +145,6 @@ dmypy.json
 # Any credentials
 *credentials*
 *key*
+
+# Notebooks
+*.ipynb
