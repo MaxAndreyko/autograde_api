@@ -1,0 +1,15 @@
+*.xlsx
+*.ipynb
+*.json
+
+.gitignore
+.git
+
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+__pypackages__/
+
+bert_base_uncase_10_epochs
+bert_base_uncase_10_epochs_local
