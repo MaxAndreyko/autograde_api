@@ -6,3 +6,4 @@ fastapi==0.108.0
 pydantic==2.5.3
 boto3==1.33.1
 uvicorn==0.25.0
+asgi_correlation_id==4.3.0
