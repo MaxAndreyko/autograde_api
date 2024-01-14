@@ -1,10 +1,13 @@
 bert_model:
   question_col: "Question"
   answer_col: "Text"
-  model_dir: "bert_base_uncase_10_epochs"
+  model_dir: "s3-storage/bert_base_uncase_10_epochs"
   config_file: "config.json"
+
+k2_score:
+  answer_col: "Text"
+  keywords_path: "dictionaries/k2_keywords.txt"
 
 s3_data:
   bucket_name: "autograde-engwriting"
   bert_model_path: "bert_base_uncase_10_epochs"
-  
