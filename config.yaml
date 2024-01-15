@@ -8,6 +8,9 @@ k2_score:
   answer_col: "Text"
   keywords_path: "dictionaries/k2_keywords.txt"
 
+flan_t5_model:
+  model_dir: "s3-storage/flan_t5_large_grammar_synthesis"
+
 s3_data:
   bucket_name: "autograde-engwriting"
   bert_model_path: "bert_base_uncase_10_epochs"
