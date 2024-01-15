@@ -11,5 +11,4 @@ __pycache__/
 *$py.class
 __pypackages__/
 
-bert_base_uncase_10_epochs
-bert_base_uncase_10_epochs_local
+s3-storage/
