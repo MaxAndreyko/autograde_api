@@ -9,8 +9,6 @@ from scorers.k1_scorer import K1ScoreRegressor
 from scorers.main_scorer import evaluate_text
 from loggers.log_middleware import LogMiddleware
 from transformers import pipeline
-import nltk
-nltk.download("punkt")
 
 import logging
 
