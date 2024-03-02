@@ -21,9 +21,10 @@ class LogMiddleware(BaseHTTPMiddleware):
                     "req": {
                         "method": request.method,
                         "url": str(request.url),
-
                     },
-                    "res": {"status_code": response.status_code, },
+                    "res": {
+                        "status_code": response.status_code,
+                    },
                 },
             )
             return response
@@ -32,14 +33,18 @@ class LogMiddleware(BaseHTTPMiddleware):
             logger.error(
                 "Internal server error",
                 extra={
-                        "request_id": correlation_id.get(),
+                    "request_id": correlation_id.get(),
                     "req": {
                         "method": request.method,
                         "url": str(request.url),
                     },
-                    "res": {"status_code": 500, "err": "".join(traceback.format_exception(
-                        exc_type,
-                        exc_value,
-                        exc_traceback))},
+                    "res": {
+                        "status_code": 500,
+                        "err": "".join(
+                            traceback.format_exception(
+                                exc_type, exc_value, exc_traceback
+                            )
+                        ),
+                    },
                 },
             )

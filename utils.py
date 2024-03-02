@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def dict_to_df(send_data: dict) -> pd.DataFrame:
     """Transforms input dictionary to pandas dataframe
 
@@ -33,9 +34,5 @@ def form_send_request_body(k1: int, k2: int, k3: dict) -> dict:
     dict
         Predicted scores dictionary
     """
-    body = {
-        "k1": str(k1),
-        "k2": k2,
-        "k3": k3
-    }
+    body = {"k1": str(k1), "k2": k2, "k3": k3}
     return body

@@ -144,7 +144,15 @@ dmypy.json
 
 # Any credentials
 *credentials*
-*key*
-
+*key*.json
 # Notebooks
 *.ipynb
+
+# NLTK data
+punkt/*
+
+# S3 model storage
+s3-storage/*
+
+# Any .exe files
+*.exe

@@ -13,7 +13,9 @@ class JsonFormatter(Formatter):
         json_record = {}
         json_record["message"] = record.getMessage()
         json_record["request_id"] = correlation_id.get()
-        json_record["level"] = str.replace(str.replace(record.levelname, "WARNING", "WARN"), "CRITICAL", "FATAL")
+        json_record["level"] = str.replace(
+            str.replace(record.levelname, "WARNING", "WARN"), "CRITICAL", "FATAL"
+        )
         if "req" in record.__dict__:
             json_record["req"] = record.__dict__["req"]
 

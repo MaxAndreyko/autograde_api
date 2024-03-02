@@ -1,17 +1,19 @@
 import pandas as pd
 from datasets import Dataset
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
-from transformers import DataCollatorWithPadding
-from transformers import TrainingArguments, Trainer
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    DataCollatorWithPadding,
+    Trainer,
+    TrainingArguments,
+)
 
 
 class K1ScoreRegressor:
-    def __init__(self,
-                 model_dir: str,
-                 question_col: str,
-                 answer_col: str,
-                 config_file: str
-                ):
+    def __init__(
+        self, model_dir: str, question_col: str, answer_col: str, config_file: str
+    ):
         """Initializes K2-criterion regression model from saved weights
 
         Parameters
@@ -41,9 +43,7 @@ class K1ScoreRegressor:
         self.model_config = AutoConfig.from_pretrained(f"{model_dir}/{config_file}")
 
         # Initialize data collator for padding
-        self.data_collator = DataCollatorWithPadding(
-            tokenizer=self.tokenizer
-        )
+        self.data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
 
         # Load the trained content score prediction model
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_dir)
@@ -60,10 +60,11 @@ class K1ScoreRegressor:
 
         # Initialize a trainer for inference
         self.infer = Trainer(
-                      model=self.model ,
-                      tokenizer=self.tokenizer,
-                      data_collator=self.data_collator,
-                      args=test_args)
+            model=self.model,
+            tokenizer=self.tokenizer,
+            data_collator=self.data_collator,
+            args=test_args,
+        )
 
     def tokenize_function_infer(self, examples: pd.DataFrame):
         """Tokenizes input text
@@ -76,9 +77,10 @@ class K1ScoreRegressor:
         tokenized = self.tokenizer(examples[self.input_col])
         return tokenized
 
-    def predict(self,
-                test_df: pd.DataFrame,
-               ) -> int:
+    def predict(
+        self,
+        test_df: pd.DataFrame,
+    ) -> int:
         """Predicts letter score for input data
 
         Parameters
@@ -94,10 +96,7 @@ class K1ScoreRegressor:
         sep = self.tokenizer.sep_token
 
         # Create input text for test data
-        in_text = (
-                    test_df[self.question_col] + sep
-                    + test_df[self.answer_col]
-                  )
+        in_text = test_df[self.question_col] + sep + test_df[self.answer_col]
         test_df[self.input_col] = in_text
 
         # Select the relevant columns
@@ -105,10 +104,11 @@ class K1ScoreRegressor:
 
         # Create a dataset from the test data
         test_dataset = Dataset.from_pandas(test_, preserve_index=False)
-        test_tokenized_dataset = test_dataset.map(self.tokenize_function_infer, batched=False)
+        test_tokenized_dataset = test_dataset.map(
+            self.tokenize_function_infer, batched=False
+        )
 
         # Perform predictions
         pred = round(self.infer.predict(test_tokenized_dataset)[0][0][0])
 
         return pred
-    
