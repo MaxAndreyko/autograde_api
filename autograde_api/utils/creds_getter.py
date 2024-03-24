@@ -28,3 +28,22 @@ def get_smtp_credentials() -> Dict:
         return None
     else:
         return smtp_creds
+
+
+def get_redis_creds() -> Dict:
+    """Gets Redis credentials from environment variables
+
+    Returns:
+        Dict: Dictionary with Redis credentials
+    """
+    logger = logging.getLogger(__name__)
+    reids_creds = {
+        "redis_host": environ.get("REDIS_HOST"),
+        "redis_port": environ.get("REDIS_PORT"),
+    }
+    if None in reids_creds.values():
+        none_keys = get_none_keys(reids_creds)
+        logger.error(f"Redis credentials are not set: {none_keys}")
+        return None
+    else:
+        return reids_creds
