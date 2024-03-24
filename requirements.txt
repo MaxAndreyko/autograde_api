@@ -10,3 +10,8 @@ asgi_correlation_id==4.3.0
 language_tool_python==2.7.1
 nltk==3.8.1
 langdetect==1.0.9
+fastapi-cache2==0.1.9
+aioredis==2.0.1
+aiosmtplib==3.0.1
+redis==5.0.3
+py-dotenv==0.1
