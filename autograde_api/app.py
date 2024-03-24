@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import AnyStr, Dict
 
 import aioredis
@@ -14,7 +15,7 @@ from autograde_api.email.sender import send_email
 from autograde_api.models.data import PredictionRequest, User
 from autograde_api.scorers.k1_scorer import K1ScoreRegressor
 from autograde_api.scorers.main_scorer import evaluate_text
-from autograde_api.utils.creds_getter import get_smtp_credentials
+from autograde_api.utils.creds_getter import get_redis_creds, get_smtp_credentials
 from autograde_api.utils.formatter import (
     dict_to_df,
     format_prediction_request,
@@ -45,17 +46,24 @@ k3_model = pipeline(
 )
 
 
-# Глобальный клиент Redis
+# Redis global client
 redis: aioredis.Redis = None
 
 
 @app.on_event("startup")
 async def startup():
     global redis
-    redis = await aioredis.from_url(
-        "redis://localhost", encoding="utf8", decode_responses=True
-    )
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    redis_creds = get_redis_creds()
+    if redis_creds is not None:
+        redis = await aioredis.from_url(
+            f"redis://{redis_creds['redis_host']}:{redis_creds['redis_port']}",
+            encoding="utf8",
+            decode_responses=True,
+        )
+        FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    else:
+        log.error("Service stopped")
+        sys.exit(1)
 
 
 @app.delete("/cache/clear")
