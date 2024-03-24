@@ -1,5 +1,6 @@
 import logging
 from os import environ
+from typing import Dict
 
 from dotenv import find_dotenv, load_dotenv
 
@@ -8,7 +9,12 @@ from autograde_api.utils.helpers import get_none_keys
 load_dotenv(find_dotenv())
 
 
-def get_smtp_credentials():
+def get_smtp_credentials() -> Dict:
+    """Gets SMTP credentials from environment variables
+
+    Returns:
+        Dict: Dictionary with SMTP credentials
+    """
     logger = logging.getLogger(__name__)
     smtp_creds = {
         "smtp_server": environ.get("SMTP_SERVER"),
