@@ -1,7 +1,7 @@
 bert_model:
   question_col: "Question"
   answer_col: "Text"
-  model_dir: "s3-storage/bert_base_uncase_10_epochs"
+  model_dir: "models/bert_base_uncase_10_epochs"
   config_file: "config.json"
 
 k2_score:
@@ -9,7 +9,7 @@ k2_score:
   keywords_path: "dictionaries/k2_keywords.txt"
 
 flan_t5_model:
-  model_dir: "s3-storage/flan_t5_large_grammar_synthesis"
+  model_dir: "models/flan_t5_large_grammar_synthesis"
 
 s3_data:
   bucket_name: "autograde-engwriting"
