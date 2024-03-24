@@ -1,0 +1,28 @@
+version: "3"
+services:
+  api:
+    image: autograde_api:latest
+    container_name: autograde_api_container
+    restart: unless-stopped
+    build:
+      dockerfile: ./Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./dictionaries:/autograde_api/dictionaries
+      - ./models:/autograde_api/models
+      - ./config.yaml:/autograde_api/config.yaml
+    ports:
+      - 8080:8080
+    expose:
+      - 8080
+  redis:
+    image: redis:latest
+    container_name: redis_container
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
