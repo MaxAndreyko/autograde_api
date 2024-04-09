@@ -145,7 +145,7 @@ async def root():
     raise HTTPException(status_code=status.HTTP_200_OK, detail="Сервис доступен")
 
 
-@app.post("/predict/")
+@app.post("/predict")
 @cache(expire=600)
 async def predict(username: str, prediction_request: PredictionRequest) -> Dict:
     """API POST predicting scores function
