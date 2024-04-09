@@ -151,8 +151,9 @@ dmypy.json
 # NLTK data
 punkt/*
 
-# S3 model storage
-s3-storage/*
+# Model storage
+models/*/*
+!models/*/.gitkeep
 
 # Any .exe files
 *.exe
