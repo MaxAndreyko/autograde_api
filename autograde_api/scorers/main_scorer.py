@@ -1,5 +1,4 @@
 from langdetect import detect
-
 from scorers.k2_scorer import get_k2_score
 from scorers.k3_scorer import (
     count_lexical_and_grammatical_errors,
