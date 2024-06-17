@@ -92,7 +92,8 @@ async def login(user_data: User):
     """
     user_data = user_data.model_dump()
     username = user_data.pop("username")
-    await redis.hset(username, mapping=user_data)
+    print(username)
+    await redis.hmset(username, mapping=user_data)
     raise HTTPException(
         status_code=status.HTTP_200_OK,
         detail=f"Пользователь с ником {username} и почтой {user_data['email']} добавлен",
@@ -145,7 +146,7 @@ async def root():
     raise HTTPException(status_code=status.HTTP_200_OK, detail="Сервис доступен")
 
 
-@app.post("/predict")
+@app.post("/predict/redis")
 @cache(expire=600)
 async def predict(username: str, prediction_request: PredictionRequest) -> Dict:
     """API POST predicting scores function
@@ -175,4 +176,28 @@ async def predict(username: str, prediction_request: PredictionRequest) -> Dict:
     await redis.hset(
         username, "prediction_result", format_prediction_result(predictions)
     )
+    return predictions
+
+
+@app.post("/predict")
+async def predict(request: PredictionRequest) -> Dict:
+    """API POST predicting scores function
+
+    Parameters
+    ----------
+    request : PredictionRequest
+        Input raw data for prediction
+
+    Returns
+    -------
+    dict
+        Predicted scores dictionary
+    """
+    data = request.data
+    df = dict_to_df(data)
+
+    predictions = evaluate_text(
+        df, cfg_dict["k2_score"]["answer_col"], k1_model, k3_model, KEYWORDS
+    )
+
     return predictions
