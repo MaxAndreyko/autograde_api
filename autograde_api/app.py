@@ -4,47 +4,30 @@ from typing import AnyStr, Dict
 
 import aioredis
 import nltk
-import yaml
+
+import json
 from fastapi import FastAPI, HTTPException, status
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
-from transformers import pipeline
 
-from autograde_api.email.sender import send_email
+
+from autograde_api.email_sender.sender import send_email
 from autograde_api.models.data import PredictionRequest, User
-from autograde_api.scorers.k1_scorer import K1ScoreRegressor
-from autograde_api.scorers.main_scorer import evaluate_text
+
 from autograde_api.utils.creds_getter import get_redis_creds, get_smtp_credentials
-from autograde_api.utils.formatter import (
-    dict_to_df,
-    format_prediction_request,
-    format_prediction_result,
-)
 from loggers.log_middleware import LogMiddleware
+from autograde_api.celery_worker import predict_task
+from autograde_api.caching.utils import make_cache_key
+from autograde_api.caching.queue import get_task_position
 
 log = logging.getLogger(__name__)
 
 nltk.download("punkt")
 
-# Read config yaml file
-with open("config.yaml") as cfg:
-    cfg_dict = yaml.safe_load(cfg)
-
-with open(cfg_dict["k2_score"]["keywords_path"], encoding="utf-8") as f:
-    KEYWORDS = f.read().split(",")
-
 # Create instances of global classes
 app = FastAPI(debug=True)  # FastAPI
 app.add_middleware(LogMiddleware)
-
-# K1-criterion (BERT) model
-k1_model = K1ScoreRegressor(**cfg_dict["bert_model"])
-k3_model = pipeline(
-    "text2text-generation",
-    cfg_dict["flan_t5_model"]["model_dir"],
-)
-
 
 # Redis global client
 redis: aioredis.Redis = None
@@ -64,6 +47,7 @@ async def startup():
     else:
         log.error("Service stopped")
         sys.exit(1)
+
 
 
 @app.delete("/cache/clear")
@@ -92,7 +76,6 @@ async def login(user_data: User):
     """
     user_data = user_data.model_dump()
     username = user_data.pop("username")
-    print(username)
     await redis.hmset(username, mapping=user_data)
     raise HTTPException(
         status_code=status.HTTP_200_OK,
@@ -145,22 +128,8 @@ async def root():
     """Check service functionality"""
     raise HTTPException(status_code=status.HTTP_200_OK, detail="Сервис доступен")
 
-
-@app.post("/predict/redis")
-@cache(expire=600)
+@app.post("/predict")
 async def predict(username: str, prediction_request: PredictionRequest) -> Dict:
-    """API POST predicting scores function
-
-    Parameters
-    ----------
-    prediction_request : Dict
-        Input raw data for prediction
-
-    Returns
-    -------
-    dict
-        Predicted scores dictionary
-    """
     user_exists = await redis.exists(username)
     if user_exists == 0:
         raise HTTPException(
@@ -168,36 +137,46 @@ async def predict(username: str, prediction_request: PredictionRequest) -> Dict:
         )
 
     data = prediction_request.data
-    await redis.hset(username, "prediction_request", format_prediction_request(data))
-    df = dict_to_df(data)
-    predictions = evaluate_text(
-        df, cfg_dict["k2_score"]["answer_col"], k1_model, k3_model, KEYWORDS
-    )
-    await redis.hset(
-        username, "prediction_result", format_prediction_result(predictions)
-    )
-    return predictions
+    cache_key = make_cache_key(username, data)
 
+    # Check cache first
+    cached = await redis.get(cache_key)
+    if cached:
+        response = json.loads(cached)
+        response["status"] = "done"
+        return response
 
-@app.post("/predict")
-async def predict(request: PredictionRequest) -> Dict:
-    """API POST predicting scores function
+    # Not cached: enqueue Celery task
+    task = predict_task.delay(data, cache_key)
+    return {"task_id": task.id, "status": "processing"}
 
-    Parameters
-    ----------
-    request : PredictionRequest
-        Input raw data for prediction
+@app.get("/predict/result/{task_id}")
+async def get_prediction_result(task_id: str) -> Dict:
+    task_result = predict_task.AsyncResult(task_id)
+    if task_result.ready():
+        result = task_result.get()
+        result["status"] = "done"
+        return result
+    else:
+        return {"status": "processing"}
 
-    Returns
-    -------
-    dict
-        Predicted scores dictionary
-    """
-    data = request.data
-    df = dict_to_df(data)
+@app.get("/predict/position/{task_id}")
+async def get_task_position_endpoint(task_id: str):
+    position = await get_task_position(task_id, redis)
+    
+    if position == -1:
+        task_result = predict_task.AsyncResult(task_id)
+        if task_result.ready():
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="Task already completed"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in queue"
+        )
 
-    predictions = evaluate_text(
-        df, cfg_dict["k2_score"]["answer_col"], k1_model, k3_model, KEYWORDS
-    )
-
-    return predictions
+    return {
+        "task_id": task_id,
+        "position": position
+    }
