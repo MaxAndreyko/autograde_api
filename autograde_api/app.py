@@ -6,20 +6,25 @@ import aioredis
 import nltk
 
 import json
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from autograde_api.email_sender.sender import send_email
-from autograde_api.models.data import PredictionRequest, User
-
+from autograde_api.models.data import PredictionRequest, UserRegister
+from autograde_api.database.utils import hash_password
+from autograde_api.database.models import User
 from autograde_api.utils.creds_getter import get_redis_creds, get_smtp_credentials
 from loggers.log_middleware import LogMiddleware
 from autograde_api.celery_worker import predict_task
 from autograde_api.caching.utils import make_cache_key
 from autograde_api.caching.queue import get_task_position
+from autograde_api.database.connection import get_db
+from autograde_api.database.query import add_user
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +54,6 @@ async def startup():
         sys.exit(1)
 
 
-
 @app.delete("/cache/clear")
 async def delete_cache_key(username: str):
     """Deletes cache from Redis by username (key)
@@ -63,9 +67,32 @@ async def delete_cache_key(username: str):
     await redis.delete(username)
     raise HTTPException(status_code=status.HTTP_200_OK, detail=f"Кэш {username} очищен")
 
+@app.post("/register")
+async def register_user(user: UserRegister, db: AsyncSession = Depends(get_db)):
+    # Check if user exists
+    result = await db.execute(select(User).where(User.username == user.username))
+    existing_user = result.scalars().first()
+    if existing_user:
+        # User exists: check password
+        if existing_user.password_hash == hash_password(user.password):
+            return {
+                "status": "success",
+                "detail": "User already exists and password matches.",
+                }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username already exists and password does not match."
+            )
+    # User does not exist: create new user
+    await add_user(user.username, user.password)
+    return {
+        "status": "success",
+        "detail": "User registered successfully.",
+    }
 
 @app.post("/login")
-async def login(user_data: User):
+async def login(user_data: UserRegister):
     """Loads new user to Redis
 
     Args:
