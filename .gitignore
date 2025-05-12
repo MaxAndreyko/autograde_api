@@ -157,3 +157,6 @@ models/*/*
 
 # Any .exe files
 *.exe
+
+database/*/*
+!database/init/*
