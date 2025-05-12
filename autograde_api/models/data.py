@@ -1,4 +1,4 @@
-from typing import AnyStr, Dict
+from typing import Dict
 
 from pydantic import BaseModel
 
@@ -16,13 +16,13 @@ class PredictionResult(BaseModel):
     k1_score: int
     k2_score: int
     k3_score: int
-    comments: AnyStr
+    comments: str
 
 
-class User(BaseModel):
+class UserRegister(BaseModel):
     """User data model"""
 
-    username: AnyStr
-    email: AnyStr
-    prediction_request: AnyStr
-    prediction_result: AnyStr
+    username: str
+    password: str
+    prediction_request: str
+    prediction_result: str
