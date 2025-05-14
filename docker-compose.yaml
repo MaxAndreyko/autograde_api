@@ -16,6 +16,33 @@ services:
       - 8080:8080
     expose:
       - 8080
+    networks:
+      - autograde-net
+
+  worker:
+    image: autograde_api:latest
+    container_name: autograde_worker_container
+    restart: unless-stopped
+    env_file:
+      - .env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./dictionaries:/autograde_api/dictionaries
+      - ./models:/autograde_api/models
+      - ./config.yaml:/autograde_api/config.yaml
+    command: celery -A autograde_api.celery_worker.celery worker --pool=threads --loglevel=info -c 4
+    depends_on:
+      - redis
+      - api
+    networks:
+      - autograde-net
+
   redis:
     image: redis:latest
     container_name: redis_container
@@ -26,7 +53,9 @@ services:
       - 6379:6379
     expose:
       - 6379
-  
+    networks:
+      - autograde-net
+
   db:
     image: mysql:8.0
     container_name: autograde_db
@@ -45,3 +74,27 @@ services:
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
+    networks:
+      - autograde-net
+  
+  web:
+    build: ./web
+    container_name: webapp
+    ports:
+      - 8501:8501
+    volumes:
+      - ./:/app
+    command: streamlit run web.py --server.port 8501 --server.address 0.0.0.0
+    env_file:
+      - .env
+    networks:
+      - autograde-net
+    depends_on:
+      - api
+      - redis
+      - worker
+      - db
+
+
+networks:
+  autograde-net:
