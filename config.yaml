@@ -1,8 +1,20 @@
 bert_model:
   question_col: "Question"
   answer_col: "Text"
-  model_dir: "models/bert_base_uncase_10_epochs"
+  model_name: "bert-large-cased"
+  model_weights: "models/100ep_augv3_w_task_torch_round_mse_ce_sep_hidden_dim_512_unfreeze_10_corr_rand_shuffle/best.pt"
   config_file: "config.json"
+  freeze_bert: True
+  freeze_layers: 10
+  dim_in: 1024
+  dim_out: 3
+  p_dropout: 0.007
+  head_hidden_dim: 512
+  max_target: 2
+  min_target: 0
+  max_length: 512
+  padding: max_length
+  truncation: True
 
 k2_score:
   answer_col: "Text"
