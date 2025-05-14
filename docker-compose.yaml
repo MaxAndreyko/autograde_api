@@ -76,24 +76,6 @@ services:
       --collation-server=utf8mb4_unicode_ci
     networks:
       - autograde-net
-  
-  web:
-    build: ./web
-    container_name: webapp
-    ports:
-      - 8501:8501
-    volumes:
-      - ./:/app
-    command: streamlit run web.py --server.port 8501 --server.address 0.0.0.0
-    env_file:
-      - .env
-    networks:
-      - autograde-net
-    depends_on:
-      - api
-      - redis
-      - worker
-      - db
 
 
 networks:
