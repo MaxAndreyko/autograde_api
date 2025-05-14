@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import AnyStr, Dict
+from typing import AnyStr, Dict, List
 
 import aioredis
 import nltk
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from autograde_api.email_sender.sender import send_email
-from autograde_api.models.data import PredictionRequest, UserRegister
+from autograde_api.models.data import PredictionRequest, UserRegister, PredictionResult, EssaySubmission
 from autograde_api.database.utils import hash_password
 from autograde_api.database.models import User
 from autograde_api.utils.creds_getter import get_redis_creds, get_smtp_credentials
@@ -24,7 +24,7 @@ from autograde_api.celery_worker import predict_task
 from autograde_api.caching.utils import make_cache_key
 from autograde_api.caching.queue import get_task_position
 from autograde_api.database.connection import get_db
-from autograde_api.database.query import add_user
+from autograde_api.database.query import add_user, save_essay_submission, get_user_id_by_username, get_last_n_essay_submissions
 
 log = logging.getLogger(__name__)
 
@@ -91,24 +91,6 @@ async def register_user(user: UserRegister, db: AsyncSession = Depends(get_db)):
         "detail": "User registered successfully.",
     }
 
-@app.post("/login")
-async def login(user_data: UserRegister):
-    """Loads new user to Redis
-
-    Args:
-        user_data (User): User data
-
-    Raises:
-        HTTPException: User adding status
-    """
-    user_data = user_data.model_dump()
-    username = user_data.pop("username")
-    await redis.hmset(username, mapping=user_data)
-    raise HTTPException(
-        status_code=status.HTTP_200_OK,
-        detail=f"Пользователь с ником {username} и почтой {user_data['email']} добавлен",
-    )
-
 
 @app.post("/send_email")
 async def prediction_send_email(username: str):
@@ -157,12 +139,6 @@ async def root():
 
 @app.post("/predict")
 async def predict(username: str, prediction_request: PredictionRequest) -> Dict:
-    user_exists = await redis.exists(username)
-    if user_exists == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
-        )
-
     data = prediction_request.data
     cache_key = make_cache_key(username, data)
 
@@ -207,3 +183,42 @@ async def get_task_position_endpoint(task_id: str):
         "task_id": task_id,
         "position": position
     }
+
+@app.post("/essay/submit")
+async def submit_essay(prediction_result: PredictionResult):
+    user_id = await get_user_id_by_username(prediction_result.username)
+    try:
+        result = await save_essay_submission(
+            user_id=user_id,
+            input_task=prediction_result.task,
+            input_essay=prediction_result.essay,
+            score_content=prediction_result.k1,
+            score_organization=prediction_result.k2,
+            score_grammar=prediction_result.k3,
+            comment=prediction_result.comments,
+        )
+        return {"message": "Essay submission saved successfully.", "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save essay submission: {e}")
+    
+@app.get("/submissions/last/{username}/{n}", response_model=List[EssaySubmission])
+async def get_last_submissions(username: str, n: int):
+    try:
+        user_id = await get_user_id_by_username(username)
+        raw_submissions = await get_last_n_essay_submissions(user_id, n)
+        submissions = []
+        for rsub in raw_submissions:
+            sub = EssaySubmission(
+                id = rsub.id,
+                input_task = rsub.input_task,
+                input_essay = rsub.input_essay,
+                score_content = rsub.score_content,
+                score_organization = rsub.score_organization,
+                score_grammar = rsub.score_grammar,
+                comment = rsub.comment if rsub.comment is not None else "",
+                submitted_at = rsub.submitted_at.strftime("%d-%m-%Y %H:%M:%S")
+            )
+            submissions.append(sub)
+        return submissions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get submissions: {e}")
