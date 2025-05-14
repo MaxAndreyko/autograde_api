@@ -13,7 +13,7 @@ class User(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
 # EssayScoring Model
-class EssayScoring(Base):
+class EssaySubmissions(Base):
     __tablename__ = 'essay_scoring'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
