@@ -47,3 +47,24 @@ def get_redis_creds() -> Dict:
         return None
     else:
         return reids_creds
+    
+def get_db_creds() -> Dict:
+    """Gets database credentials from environment variables
+
+    Returns:
+        Dict: Dictionary with Redis credentials
+    """
+    logger = logging.getLogger(__name__)
+    db_creds = {
+        "host": environ.get("MYSQL_HOST"),
+        "port": environ.get("MYSQL_PORT"),
+        "user": environ.get("MYSQL_USER"),
+        "password": environ.get("MYSQL_PASSWORD"),
+        "db_name": environ.get("MYSQL_DATABASE"),
+    }
+    if None in db_creds.values():
+        none_keys = get_none_keys(db_creds)
+        logger.error(f"Database credentials are not set: {none_keys}")
+        return None
+    else:
+        return db_creds
