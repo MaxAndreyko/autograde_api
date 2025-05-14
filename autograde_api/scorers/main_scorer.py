@@ -9,6 +9,7 @@ from autograde_api.scorers.k3_scorer import (
     get_changed_sentences,
 )
 from autograde_api.data.analyse import count_words_in_paragraphs
+from autograde_api.data.preprocess import truncate_words
 
 
 # Функция для оценки текста
@@ -33,8 +34,7 @@ def evaluate_text(
             "comments": "Ответ не соответствует требуемому объёму",
         }
     elif num_words > 154:
-        words = words[:140]
-        text = " ".join(words)
+        text = truncate_words(text, num_words=140)
 
     # Проверка языка текста
     if detect(text) != "en":
